@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>五星出东方利中国 · 提花织机</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22 fill=%22%23d9a844%22>✦</text></svg>">
+<style>
+  :root{
+    --gold:#d9a844; --gold-dim:rgba(217,168,68,.38);
+    --ink:#e9e2d0; --ink-dim:#9a927f;
+    --panel:rgba(13,15,22,.74);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#14161c;
+    font-family:"Songti SC","STSong","SimSun",serif;color:var(--ink);}
+  #scene{position:fixed;inset:0;}
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--gold-dim);
+    border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    box-shadow:0 6px 24px rgba(0,0,0,.45);z-index:10;}
+  /* 左上：标题与进度 */
+  #ui-top{top:18px;left:18px;padding:16px 20px 14px;min-width:300px;}
+  #ui-top h1{font-size:26px;letter-spacing:6px;color:var(--gold);font-weight:700;
+    text-shadow:0 2px 10px rgba(217,168,68,.25);}
+  #ui-top .sub{margin-top:4px;font-size:12px;letter-spacing:2px;color:var(--ink-dim);}
+  .phase-row{display:flex;gap:8px;margin-top:12px;}
+  .chip{flex:1;text-align:center;font-size:13px;letter-spacing:3px;padding:5px 0;
+    border:1px solid rgba(233,226,208,.18);border-radius:6px;color:var(--ink-dim);
+    transition:all .25s;}
+  .chip.active{background:var(--gold);border-color:var(--gold);color:#241a08;font-weight:700;
+    box-shadow:0 0 14px rgba(217,168,68,.45);}
+  .progress{margin-top:12px;height:8px;border-radius:4px;background:rgba(233,226,208,.12);
+    overflow:hidden;}
+  #progress-fill{height:100%;width:0%;border-radius:4px;
+    background:linear-gradient(90deg,#b83226,#d9a844);transition:width .2s;}
+  .pick{margin-top:7px;font-size:12px;letter-spacing:1px;color:var(--ink-dim);}
+  /* 底部控制条 */
+  #ui-controls{bottom:20px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:10px;padding:10px 14px;}
+  button{font-family:inherit;font-size:14px;letter-spacing:2px;color:var(--ink);
+    background:rgba(233,226,208,.06);border:1px solid var(--gold-dim);border-radius:7px;
+    padding:8px 16px;cursor:pointer;transition:all .2s;}
+  button:hover{background:rgba(217,168,68,.18);border-color:var(--gold);}
+  button.primary{background:var(--gold);color:#241a08;font-weight:700;border-color:var(--gold);}
+  button.primary:hover{background:#e8bb55;}
+  .ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);
+    letter-spacing:1px;padding:0 4px;}
+  input[type=range]{width:110px;accent-color:var(--gold);cursor:pointer;}
+  #speed-val{min-width:34px;color:var(--ink);}
+  /* 右下：图例 */
+  #ui-legend{right:18px;bottom:20px;padding:12px 16px;font-size:12px;line-height:1.9;
+    letter-spacing:1px;color:var(--ink-dim);}
+  #ui-legend b{color:var(--ink);font-weight:400;}
+  #ui-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;
+    margin-right:7px;vertical-align:-1px;}
+  /* 右上：纹样设置 */
+  #ui-pattern{top:18px;right:18px;padding:14px 16px;width:236px;}
+  #ui-pattern .ptitle{font-size:14px;letter-spacing:4px;color:var(--gold);margin-bottom:10px;}
+  #ui-pattern select,#ui-pattern input{width:100%;margin-bottom:8px;
+    background:rgba(233,226,208,.08);border:1px solid var(--gold-dim);border-radius:6px;
+    color:var(--ink);padding:7px 9px;font-family:inherit;font-size:13px;outline:none;}
+  #ui-pattern select option{background:#1c1f2a;color:var(--ink);}
+  #ui-pattern input:focus{border-color:var(--gold);}
+  #ui-pattern .phint{font-size:11px;color:var(--ink-dim);letter-spacing:1px;margin:-2px 0 10px;}
+  #ui-pattern .prow{display:flex;gap:8px;}
+  #ui-pattern .prow button{flex:1;padding:7px 0;font-size:13px;}
+  /* 完成遮罩 */
+  #done-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,11,16,.55);backdrop-filter:blur(3px);z-index:20;
+    opacity:0;visibility:hidden;transition:all .6s;}
+  #done-overlay.show{opacity:1;visibility:visible;}
+  .done-box{text-align:center;padding:44px 64px;border:2px solid var(--gold);border-radius:14px;
+    background:rgba(20,18,14,.9);box-shadow:0 0 60px rgba(217,168,68,.28), inset 0 0 40px rgba(217,168,68,.06);}
+  .done-title{font-size:40px;letter-spacing:12px;color:var(--gold);font-weight:700;}
+  .done-pattern{margin-top:14px;font-size:20px;letter-spacing:8px;color:var(--ink);}
+  .done-sub{margin-top:8px;font-size:12px;letter-spacing:3px;color:var(--ink-dim);}
+  #btn-again{margin-top:26px;}
+  /* 提示 */
+  #hint{position:fixed;bottom:20px;left:18px;font-size:12px;letter-spacing:1px;
+    color:rgba(233,226,208,.4);z-index:5;}
+  /* 暗角 */
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:3;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);}
+  @media (max-width:760px){
+    #ui-legend{display:none;}
+    #ui-top{min-width:0;right:18px;}
+    #ui-top h1{font-size:20px;letter-spacing:3px;}
+    #ui-pattern{top:auto;bottom:86px;left:18px;right:18px;width:auto;}
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="scene"></div>
+<div id="vignette"></div>
+
+<div id="ui-top" class="panel">
+  <h1>五星出东方利中国</h1>
+  <div class="sub">东汉织锦纹样 · 提花织机织造演示</div>
+  <div class="phase-row">
+    <span id="ph-shed" class="chip">开 口</span>
+    <span id="ph-shuttle" class="chip">引 纬</span>
+    <span id="ph-beat" class="chip">打 纬</span>
+  </div>
+  <div class="progress"><div id="progress-fill"></div></div>
+  <div id="pick-label" class="pick">准备就绪 · 共 200 纬</div>
+</div>
+
+<div id="ui-controls" class="panel">
+  <button id="btn-start" class="primary">开始织造</button>
+  <button id="btn-reset">重置</button>
+  <label class="ctl">速度
+    <input id="speed" type="range" min="0.5" max="8" step="0.5" value="2">
+    <span id="speed-val">2×</span>
+  </label>
+  <button id="btn-sound">音效：开</button>
+  <button id="btn-rotate">自动旋转：关</button>
+</div>
+
+<div id="ui-pattern" class="panel">
+  <div class="ptitle">纹 样 设 置</div>
+  <select id="preset">
+    <option value="wuxing">五星锦（文字带）</option>
+    <option value="yunqi">云气瑞兽纹</option>
+    <option value="jihe">几何纹</option>
+  </select>
+  <input id="custom-text" maxlength="8" placeholder="自定义文字（≤8 字）">
+  <div class="phint">五星锦留空时默认「五星出东方利中国」</div>
+  <div class="prow">
+    <button id="btn-apply">应用纹样</button>
+    <button id="btn-export">导出织锦</button>
+  </div>
+</div>
+
+<div id="ui-legend" class="panel">
+  <div><i style="background:#e8ddc4"></i><b>经线</b>（米白，128 根）</div>
+  <div><i style="background:#8a8f98"></i><b>综片 / 通丝</b>（按纹板提升经线）</div>
+  <div><i style="background:#5a3a20"></i><b>筘</b>（前后摆动打纬）</div>
+  <div><i style="background:#3a2415"></i><b>梭子</b>（往返引纬）</div>
+  <div><i style="background:#c9a86f"></i><b>纹板</b>（打孔卡片控制花纹）</div>
+  <div><i style="background:#24407a"></i><b>织锦</b>（卷入卷布辊）</div>
+</div>
+
+<div id="done-overlay">
+  <div class="done-box">
+    <div class="done-title">织造完成</div>
+    <div class="done-pattern">五星出东方利中国</div>
+    <div class="done-sub">东汉 · 锦护臂纹样（新疆民丰尼雅遗址出土）</div>
+    <button id="btn-again" class="primary">再织一次</button>
+  </div>
+</div>
+
+<div id="hint">左键拖动旋转视角 · 滚轮缩放 · 空格键 开始 / 暂停</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ==================== 常量 ==================== */
+const NUM_WARPS   = 128;          // 经线根数
+const WARP_WIDTH  = 3.6;
+const CLOTH_WIDTH = 3.55;
+const PW = 512;                   // 纹样画布宽
+const PD = 720;                   // 纹样设计高度（行）
+const PH = 80;                    // 机头素纹高度
+const PHC = PD + PH;              // 画布总高 800
+const ROWS_PER_PICK = 4;          // 每纬织入的画布行数
+const PMAX = PHC / ROWS_PER_PICK; // 总纬数 200
+const PICK_WORLD = 0.011;         // 每纬织物前进（世界单位）
+const EYE_Y = 1.02, LIFT_H = 0.22, HEDDLE_Z = -0.25;
+const FELL_Y = 1.0, FELL_Z = 1.1;
+const WARP_X0 = -WARP_WIDTH / 2, WARP_DX = WARP_WIDTH / (NUM_WARPS - 1);
+
+const COL = { blue:'#1c3260', red:'#b83226', gold:'#d9a844', white:'#efe6cf', green:'#4a7a56' };
+
+/* ==================== 纹样绘制（五星出东方利中国锦） ==================== */
+function star5(c, x, y, rO, rI, color){
+  c.beginPath();
+  for(let i = 0; i < 10; i++){
+    const r = i % 2 ? rI : rO, a = -Math.PI / 2 + i * Math.PI / 5;
+    const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+    i ? c.lineTo(px, py) : c.moveTo(px, py);
+  }
+  c.closePath(); c.fillStyle = color; c.fill();
+}
+function cloud(c, x, y, s, colA, colB){
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = colA;
+  c.beginPath();
+  c.arc(-10, 0, 9, 0, Math.PI * 2);
+  c.arc(0, -6, 11, 0, Math.PI * 2);
+  c.arc(10, 0, 9, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.moveTo(-14, 4);
+  c.quadraticCurveTo(0, 16, 22, 8);
+  c.quadraticCurveTo(8, 6, -2, 10);
+  c.quadraticCurveTo(-10, 10, -14, 4);
+  c.fill();
+  c.fillStyle = colB;
+  c.beginPath(); c.arc(0, -6, 5, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+function phoenix(c, x, y, s){
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = COL.red;
+  for(let i = -1; i <= 1; i++){
+    c.beginPath();
+    c.moveTo(6, 6);
+    c.quadraticCurveTo(30 + i * 6, 26 + i * 4, 44 + i * 8, 40 + i * 6);
+    c.quadraticCurveTo(28 + i * 6, 30 + i * 4, 2, 12);
+    c.closePath(); c.fill();
+  }
+  c.beginPath(); c.ellipse(0, 0, 16, 10, -0.3, 0, Math.PI * 2); c.fill();
+  c.beginPath();
+  c.moveTo(-12, -4);
+  c.quadraticCurveTo(-24, -18, -16, -26);
+  c.quadraticCurveTo(-10, -30, -6, -24);
+  c.quadraticCurveTo(-14, -18, -6, -8);
+  c.closePath(); c.fill();
+  c.beginPath();
+  c.moveTo(-16, -26); c.lineTo(-22, -34); c.lineTo(-12, -30);
+  c.lineTo(-10, -38); c.lineTo(-6, -28);
+  c.closePath(); c.fill();
+  c.fillStyle = COL.gold;
+  c.beginPath();
+  c.moveTo(-4, -2);
+  c.quadraticCurveTo(10, -16, 26, -10);
+  c.quadraticCurveTo(12, -2, 2, 6);
+  c.closePath(); c.fill();
+  c.fillStyle = COL.white;
+  c.beginPath(); c.arc(-13, -24, 1.6, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+function beast(c, x, y, s){
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = COL.gold;
+  c.beginPath(); c.ellipse(0, 0, 20, 11, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(-22, -8, 8, 0, Math.PI * 2); c.fill();
+  c.beginPath();
+  c.moveTo(-27, -14); c.lineTo(-25, -21); c.lineTo(-20, -15);
+  c.closePath(); c.fill();
+  c.fillRect(-14, 6, 5, 14); c.fillRect(-2, 8, 5, 14); c.fillRect(9, 6, 5, 14);
+  c.fillRect(-26, -2, 5, 12);
+  c.beginPath();
+  c.moveTo(18, -4);
+  c.quadraticCurveTo(30, -14, 26, -26);
+  c.quadraticCurveTo(24, -16, 14, -8);
+  c.closePath(); c.fill();
+  c.strokeStyle = COL.red; c.lineWidth = 2.4;
+  [-8, 0, 8].forEach(dx => {
+    c.beginPath(); c.moveTo(dx, -9); c.lineTo(dx - 3, 8); c.stroke();
+  });
+  c.fillStyle = COL.white;
+  c.beginPath(); c.arc(-24, -9, 1.6, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+function band(c, y0, y1, color){ c.fillStyle = color; c.fillRect(0, y0, PW, y1 - y0); }
+function pearls(c, y, color){
+  c.fillStyle = color;
+  for(let x = 10; x < PW; x += 16){
+    c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill();
+  }
+}
+
+/* ---- 通用纹带 ---- */
+function drawBase(c){ c.fillStyle = COL.blue; c.fillRect(0, 0, PW, PHC); }
+function drawBorders(c){
+  band(c, 0, 8, COL.gold); band(c, 8, 12, COL.white);
+  band(c, 12, 22, COL.red); band(c, 22, 26, COL.gold);
+  band(c, 700, 704, COL.gold); band(c, 704, 708, COL.white);
+  band(c, 708, 718, COL.red);  band(c, 718, 720, COL.gold);
+}
+function drawSelvedge(c){
+  c.fillStyle = COL.red;  c.fillRect(0, 0, 6, PHC); c.fillRect(PW - 6, 0, 6, PHC);
+  c.fillStyle = COL.white; c.fillRect(6, 0, 2, PHC); c.fillRect(PW - 8, 0, 2, PHC);
+}
+function drawWeaveOverlay(c){
+  c.fillStyle = 'rgba(0,0,0,0.07)';
+  for(let y = 0; y < PHC; y += 2) c.fillRect(0, y, PW, 1);
+  c.fillStyle = 'rgba(255,255,255,0.03)';
+  for(let x = 0; x < PW; x += 4) c.fillRect(x, 0, 1, PHC);
+}
+/* 文字带（y178–320）：1–8 字，自适应字距 */
+function drawTextBand(c, text){
+  band(c, 178, 196, COL.red); pearls(c, 187, COL.white);
+  c.fillStyle = COL.gold; c.fillRect(0, 202, PW, 2); c.fillRect(0, 296, PW, 2);
+  band(c, 302, 320, COL.red); pearls(c, 311, COL.white);
+  const chars = [...text];
+  if(!chars.length) return;
+  const cw = PW / chars.length;
+  const fs = Math.min(56, cw * 0.78);
+  c.font = `700 ${fs}px "Songti SC","STSong","SimSun",serif`;
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillStyle = COL.white;
+  chars.forEach((ch, i) => c.fillText(ch, cw * (i + 0.5), 250));
+}
+/* 星云纹带（y40–166） */
+function drawStarCloudBand(c){
+  [64, 192, 320, 448].forEach(x => star5(c, x, 72, 16, 7, COL.gold));
+  [[128, COL.red], [256, COL.green], [384, COL.red]].forEach(([x, col]) =>
+    cloud(c, x, 74, 1.0, col, COL.gold));
+  [128, 256, 384].forEach(x => star5(c, x, 122, 13, 13 * 0.45, COL.white));
+  [[64, COL.green], [192, COL.red], [320, COL.green], [448, COL.red]].forEach(([x, col]) =>
+    cloud(c, x, 124, 0.85, col, COL.white));
+  band(c, 150, 166, COL.red); pearls(c, 158, COL.white);
+}
+/* 瑞兽纹带（y336–540） */
+function drawAnimalBand(c){
+  phoenix(c, 118, 428, -1.15);   // 面向右
+  beast(c, 394, 432, 1.15);      // 面向左
+  cloud(c, 55, 385, 0.75, COL.red, COL.gold);
+  cloud(c, 200, 375, 0.7, COL.green, COL.white);
+  cloud(c, 305, 385, 0.75, COL.red, COL.gold);
+  cloud(c, 455, 380, 0.7, COL.green, COL.white);
+  cloud(c, 70, 500, 0.7, COL.green, COL.gold);
+  cloud(c, 255, 505, 0.65, COL.red, COL.white);
+  cloud(c, 450, 500, 0.7, COL.green, COL.gold);
+  star5(c, 140, 522, 8, 3.5, COL.gold);
+  star5(c, 330, 516, 8, 3.5, COL.white);
+  star5(c, 30, 442, 7, 3, COL.gold);
+  star5(c, 485, 447, 7, 3, COL.white);
+}
+/* 条纹 + 流云纹带（y540–700） */
+function drawStripeCloudField(c){
+  band(c, 540, 544, COL.gold); band(c, 544, 546, COL.white);
+  band(c, 546, 552, COL.red);  band(c, 552, 554, COL.white);
+  band(c, 554, 558, COL.gold);
+  const rowCols = [COL.red, COL.green, COL.gold];
+  [[592, 0], [636, 40], [680, 0]].forEach(([yy, off], ri) => {
+    for(let x = 45 + off; x < PW; x += 86)
+      cloud(c, x, yy, 0.62, rowCols[(ri + Math.floor(x / 86)) % 3], COL.white);
+  });
+  star5(c, 88, 614, 6, 2.6, COL.gold); star5(c, 260, 614, 6, 2.6, COL.white);
+  star5(c, 430, 614, 6, 2.6, COL.gold); star5(c, 175, 658, 6, 2.6, COL.white);
+  star5(c, 345, 658, 6, 2.6, COL.gold);
+}
+/* 云气瑞兽：大云气纹（y40–166） */
+function drawBigCloudRows(c){
+  cloud(c, 70, 82, 1.15, COL.red, COL.gold);
+  cloud(c, 210, 82, 1.15, COL.green, COL.white);
+  cloud(c, 350, 82, 1.15, COL.red, COL.gold);
+  cloud(c, 470, 82, 1.0, COL.green, COL.white);
+  star5(c, 140, 132, 12, 5.4, COL.gold);
+  star5(c, 280, 132, 12, 5.4, COL.white);
+  star5(c, 420, 132, 12, 5.4, COL.gold);
+  band(c, 150, 166, COL.red); pearls(c, 158, COL.white);
+}
+/* 云气瑞兽：双凤相对（y178–320，无文字带时） */
+function drawPhoenixBand(c){
+  band(c, 178, 196, COL.red); pearls(c, 187, COL.white);
+  c.fillStyle = COL.gold; c.fillRect(0, 202, PW, 2); c.fillRect(0, 296, PW, 2);
+  band(c, 302, 320, COL.red); pearls(c, 311, COL.white);
+  phoenix(c, 140, 252, -1.2);
+  phoenix(c, 372, 252, 1.2);
+  cloud(c, 60, 215, 0.7, COL.red, COL.gold);
+  cloud(c, 256, 300, 0.65, COL.green, COL.white);
+  cloud(c, 452, 215, 0.7, COL.red, COL.gold);
+  star5(c, 256, 220, 9, 4, COL.gold);
+}
+/* 几何纹工具 */
+function diamond(c, x, y, w, h, color){
+  c.beginPath();
+  c.moveTo(x, y - h / 2); c.lineTo(x + w / 2, y);
+  c.lineTo(x, y + h / 2); c.lineTo(x - w / 2, y);
+  c.closePath(); c.fillStyle = color; c.fill();
+}
+function drawDiamondRows(c, ys, w, h, colors){
+  ys.forEach((y, ri) => {
+    const off = (ri % 2) * w / 2;
+    let ci = 0;
+    for(let x = -w / 2 + off; x < PW + w; x += w, ci++){
+      diamond(c, x, y, w, h, colors[(ri + ci) % colors.length]);
+      diamond(c, x, y, w * 0.42, h * 0.42, COL.blue);
+      diamond(c, x, y, w * 0.14, h * 0.14, COL.white);
+    }
+  });
+}
+function drawGreekKey(c, y, h, color){
+  c.strokeStyle = color; c.lineWidth = 2.4; c.lineCap = 'square';
+  const s = h / 14;
+  for(let x = 6; x < PW - 18 * s; x += 22 * s){
+    c.beginPath();
+    c.moveTo(x, y + 12 * s); c.lineTo(x, y + 2 * s);
+    c.lineTo(x + 16 * s, y + 2 * s); c.lineTo(x + 16 * s, y + 12 * s);
+    c.lineTo(x + 20 * s, y + 12 * s);
+    c.moveTo(x + 5 * s, y + 12 * s); c.lineTo(x + 5 * s, y + 7 * s);
+    c.lineTo(x + 11 * s, y + 7 * s);
+    c.stroke();
+  }
+}
+function zigzagRow(c, y, h, color){
+  c.strokeStyle = color; c.lineWidth = 3;
+  c.beginPath();
+  for(let x = 0, i = 0; x <= PW + 24; x += 24, i++)
+    i ? c.lineTo(x, y + (i % 2 ? h : 0)) : c.moveTo(x, y);
+  c.stroke();
+}
+function dotGridRows(c, ys, step, color){
+  c.fillStyle = color;
+  ys.forEach((y, ri) => {
+    const off = (ri % 2) * step / 2;
+    for(let x = 16 + off; x < PW; x += step){
+      c.beginPath(); c.arc(x, y, 2.4, 0, Math.PI * 2); c.fill();
+    }
+  });
+}
+/* 几何纹：大菱格中心带（y178–320，无文字带时） */
+function drawJiheCenter(c){
+  band(c, 178, 196, COL.red); drawGreekKey(c, 180, 14, COL.white);
+  c.fillStyle = COL.gold; c.fillRect(0, 202, PW, 2); c.fillRect(0, 296, PW, 2);
+  band(c, 302, 320, COL.red); drawGreekKey(c, 304, 14, COL.white);
+  for(let x = 64; x < PW; x += 128){
+    diamond(c, x, 250, 96, 80, COL.gold);
+    diamond(c, x, 250, 60, 52, COL.red);
+    diamond(c, x, 250, 26, 24, COL.blue);
+    star5(c, x, 250, 10, 4.5, COL.white);
+  }
+}
+/* ---- 三种预设 ---- */
+function drawWuxing(c, text){
+  drawStarCloudBand(c);
+  drawTextBand(c, text || '五星出东方利中国');
+  drawAnimalBand(c);
+  drawStripeCloudField(c);
+}
+function drawYunqi(c, text){
+  drawBigCloudRows(c);
+  if(text) drawTextBand(c, text); else drawPhoenixBand(c);
+  drawAnimalBand(c);
+  drawStripeCloudField(c);
+}
+function drawJihe(c, text){
+  drawDiamondRows(c, [62, 108, 154], 56, 40, [COL.red, COL.gold, COL.green, COL.white]);
+  band(c, 170, 174, COL.gold);
+  if(text) drawTextBand(c, text); else drawJiheCenter(c);
+  zigzagRow(c, 356, 16, COL.gold);
+  zigzagRow(c, 378, 16, COL.white);
+  dotGridRows(c, [420, 446, 472], 26, COL.white);
+  band(c, 492, 516, COL.red); drawGreekKey(c, 494, 20, COL.white);
+  drawDiamondRows(c, [566, 620, 674], 60, 42, [COL.green, COL.gold, COL.white]);
+}
+
+/* 总入口：按预设与文字绘制纹样 */
+function drawPattern(cv, { preset = 'wuxing', text = '' } = {}){
+  const c = cv.getContext('2d');
+  drawBase(c);
+  drawBorders(c);
+  if(preset === 'yunqi') drawYunqi(c, text);
+  else if(preset === 'jihe') drawJihe(c, text);
+  else drawWuxing(c, text);
+  drawSelvedge(c);
+  band(c, 720, 726, COL.gold);   // 机头分界线
+  drawWeaveOverlay(c);
+}
+function makePatternCanvas(opts){
+  const cv = document.createElement('canvas');
+  cv.width = PW; cv.height = PHC;
+  cv.getContext('2d', { willReadFrequently: true });
+  drawPattern(cv, opts);
+  return cv;
+}
+
+/* 依据纹样计算每一纬各根经线的升降（提花） */
+function computeLiftPatterns(cv){
+  const ctx = cv.getContext('2d');
+  const data = ctx.getImageData(0, 0, PW, PHC).data;
+  const all = [];
+  for(let p = 0; p < PMAX; p++){
+    const rowTop = PHC - (p + 1) * ROWS_PER_PICK;
+    const y = Math.max(0, Math.min(PHC - 1, rowTop + (ROWS_PER_PICK >> 1)));
+    const arr = new Uint8Array(NUM_WARPS);
+    for(let i = 0; i < NUM_WARPS; i++){
+      if(i < 6 || i >= NUM_WARPS - 6){ arr[i] = (p + i) & 1; continue; } // 边经交替
+      const u = Math.min(PW - 1, Math.floor((i + 0.5) / NUM_WARPS * PW));
+      const k = (y * PW + u) * 4;
+      const dr = data[k] - 28, dg = data[k + 1] - 50, db = data[k + 2] - 96;
+      arr[i] = (dr * dr + dg * dg + db * db > 3600) ? 1 : 0;
+    }
+    all.push(arr);
+  }
+  return all;
+}
+
+/* 纹板（打孔卡片）画布 */
+const CARD_COLS = 64, CARD_CELLW = 4, CARD_ROWH = 3;
+function drawCard(cv, lifts){
+  const c = cv.getContext('2d');
+  c.fillStyle = '#c9a86f'; c.fillRect(0, 0, cv.width, cv.height);
+  c.fillStyle = 'rgba(120,90,50,0.35)';
+  for(let x = 0; x <= CARD_COLS; x++) c.fillRect(x * CARD_CELLW - 0.5, 0, 1, cv.height);
+  c.fillStyle = '#3a2a18';
+  for(let p = 0; p < PMAX; p++){
+    const y = p * CARD_ROWH;
+    for(let col = 0; col < CARD_COLS; col++){
+      if(lifts[p][col * 2] || lifts[p][col * 2 + 1]){
+        c.beginPath(); c.arc(col * CARD_CELLW + 2, y + 1.5, 1.2, 0, Math.PI * 2); c.fill();
+      }
+    }
+  }
+}
+function makeCardCanvas(lifts){
+  const cv = document.createElement('canvas');
+  cv.width = CARD_COLS * CARD_CELLW; cv.height = PMAX * CARD_ROWH;
+  drawCard(cv, lifts);
+  return cv;
+}
+
+/* ==================== 纹样设置（预设 + 自定义文字 + URL 分享） ==================== */
+const PRESETS = ['wuxing', 'yunqi', 'jihe'];
+function readHash(){
+  try{
+    const h = new URLSearchParams(location.hash.slice(1));
+    const text = (h.get('text') || '').slice(0, 8);
+    const preset = h.get('pattern');
+    return { text, preset: PRESETS.includes(preset) ? preset : 'wuxing' };
+  }catch(e){ return { text: '', preset: 'wuxing' }; }
+}
+const initOpts = readHash();
+let currentPreset = initOpts.preset;
+let currentText   = initOpts.text;
+
+const patternCanvas = makePatternCanvas(initOpts);
+let   liftPatterns  = computeLiftPatterns(patternCanvas);
+const cardCanvas    = makeCardCanvas(liftPatterns);
+window.__patternCanvas = patternCanvas; // 调试/预览钩子
+
+/* 应用新纹样：重绘画布 → 重算升降 → 重绘纹板 → 重置织造 → 更新 URL */
+function applyPattern(preset, text){
+  currentPreset = preset;
+  currentText = text;
+  drawPattern(patternCanvas, { preset, text });
+  clothTex.needsUpdate = true;
+  liftPatterns = computeLiftPatterns(patternCanvas);
+  drawCard(cardCanvas, liftPatterns);
+  cardTex.needsUpdate = true;
+  resetWeaving();
+  const p = new URLSearchParams();
+  if(text) p.set('text', text);
+  p.set('pattern', preset);
+  history.replaceState(null, '', '#' + p.toString());
+}
+
+/* 导出织锦 PNG（仅设计区，不含机头） */
+function exportPatternPNG(){
+  const out = document.createElement('canvas');
+  out.width = PW; out.height = PD;
+  out.getContext('2d').drawImage(patternCanvas, 0, 0);
+  const a = document.createElement('a');
+  a.href = out.toDataURL('image/png');
+  a.download = '织锦_' + (currentText || currentPreset) + '.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* ==================== 场景 ==================== */
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14161c);
+scene.fog = new THREE.Fog(0x14161c, 14, 30);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(8.4, 5.0, 8.8);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.05, 0.15);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.maxPolarAngle = Math.PI * 0.55;
+controls.minDistance = 2.2;
+controls.maxDistance = 18;
+controls.autoRotateSpeed = 1.2;
+
+/* 灯光 */
+scene.add(new THREE.HemisphereLight(0x9aa3c0, 0x40342a, 0.55));
+const key = new THREE.DirectionalLight(0xfff1da, 1.35);
+key.position.set(4.5, 7, 4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -6; key.shadow.camera.right = 6;
+key.shadow.camera.top = 6;  key.shadow.camera.bottom = -6;
+key.shadow.camera.far = 20; key.shadow.bias = -0.0005;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x88a0ff, 0.3);
+rim.position.set(-5, 4, -6);
+scene.add(rim);
+const warm = new THREE.PointLight(0xffd9a0, 12, 14, 2);
+warm.position.set(0, 3.4, 1.2);
+scene.add(warm);
+
+/* 地面 */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 40),
+  new THREE.MeshStandardMaterial({ color: 0x232019, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ==================== 织机 ==================== */
+const loom = new THREE.Group();
+scene.add(loom);
+
+const woodMat   = new THREE.MeshStandardMaterial({ color: 0x7a4f2a, roughness: 0.75 });
+const woodDark  = new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.8 });
+const woodDeep  = new THREE.MeshStandardMaterial({ color: 0x3a2415, roughness: 0.85 });
+const steelMat  = new THREE.MeshStandardMaterial({ color: 0x8a8f98, metalness: 0.6, roughness: 0.4 });
+const goldMat   = new THREE.MeshStandardMaterial({ color: 0xb08d4f, metalness: 0.7, roughness: 0.35 });
+
+function addBox(w, h, d, mat, x, y, z, parent = loom, shadow = true){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = shadow; m.receiveShadow = shadow;
+  parent.add(m);
+  return m;
+}
+
+/* 机架 */
+[-2.05, 2.05].forEach(x => {
+  addBox(0.14, 0.16, 5.9, woodMat, x, 0.08, -0.35);          // 底纵梁
+  addBox(0.14, 1.5, 0.14, woodMat, x, 0.75, -3.0);           // 后立柱
+  addBox(0.14, 1.62, 0.14, woodMat, x, 0.81, -0.25);         // 中立柱
+  addBox(0.14, 1.1, 0.14, woodMat, x, 0.55, 2.05);           // 前立柱
+  addBox(0.12, 0.12, 2.85, woodMat, x, 1.58, -1.6);          // 上纵梁
+  addBox(0.12, 0.55, 0.12, woodMat, x, 1.86, -0.25);         // 龙头支柱
+});
+addBox(4.35, 0.12, 0.12, woodMat, 0, 1.58, -3.0);            // 后上横梁
+addBox(4.35, 0.12, 0.12, woodMat, 0, 1.62, -0.25);           // 中上横梁
+addBox(4.35, 0.1, 0.1, woodMat, 0, 1.05, 2.05);              // 前横梁
+
+/* 提花龙头 */
+addBox(4.15, 0.42, 0.62, woodDark, 0, 2.3, -0.25);
+addBox(4.0, 0.28, 0.03, goldMat, 0, 2.3, 0.075, loom, false);
+
+/* 经轴（后）与卷布辊（前） */
+function makeRoller(r, len, mat){
+  const g = new THREE.Group();
+  const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 32), mat);
+  cyl.geometry.rotateZ(Math.PI / 2);
+  cyl.castShadow = true;
+  g.add(cyl);
+  return g;
+}
+const warpBeam = makeRoller(0.32, 4.0, woodDark);
+warpBeam.position.set(0, 1.15, -3.0);
+loom.add(warpBeam);
+const warpWound = makeRoller(0.30, WARP_WIDTH + 0.2,
+  new THREE.MeshStandardMaterial({ color: 0xd8cfc0, roughness: 0.9 }));
+warpBeam.add(warpWound);
+
+const clothRoll = makeRoller(0.28, 4.0, woodDark);
+clothRoll.position.set(0, 0.38, 2.34);
+loom.add(clothRoll);
+const clothWound = makeRoller(0.30, CLOTH_WIDTH,
+  new THREE.MeshStandardMaterial({ color: 0x24407a, roughness: 0.85 }));
+clothRoll.add(clothWound);
+
+/* 胸梁 */
+const breast = makeRoller(0.14, 4.2, woodMat);
+breast.position.set(0, 0.88, 2.06);
+loom.add(breast);
+
+/* ==================== 织物 ==================== */
+const clothCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, FELL_Y, FELL_Z),
+  new THREE.Vector3(0, 1.01, 1.55),
+  new THREE.Vector3(0, 1.03, 2.04),
+  new THREE.Vector3(0, 0.95, 2.20),
+  new THREE.Vector3(0, 0.80, 2.31),
+  new THREE.Vector3(0, 0.685, 2.34),
+  new THREE.Vector3(0, 0.593, 2.552),
+  new THREE.Vector3(0, 0.40, 2.645),
+]);
+const CLOTH_LEN = clothCurve.getLength();
+const VR = Math.floor(CLOTH_LEN / PICK_WORLD * ROWS_PER_PICK); // 可视窗口对应的画布行数
+
+function buildClothGeometry(){
+  const N = 48;
+  const pts = clothCurve.getSpacedPoints(N);
+  const pos = [], uv = [], idx = [];
+  for(let i = 0; i <= N; i++){
+    const p = pts[i], v = 1 - i / N;
+    pos.push(-CLOTH_WIDTH / 2, p.y, p.z, CLOTH_WIDTH / 2, p.y, p.z);
+    uv.push(0, v, 1, v);
+    if(i < N){
+      const a = 2 * i;
+      idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+const clothTex = new THREE.CanvasTexture(patternCanvas);
+clothTex.colorSpace = THREE.SRGBColorSpace;
+clothTex.wrapS = THREE.ClampToEdgeWrapping;
+clothTex.wrapT = THREE.ClampToEdgeWrapping;
+clothTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+clothTex.repeat.set(1, VR / PHC);
+const clothOffset = picksWoven => (picksWoven * ROWS_PER_PICK - VR) / PHC;
+clothTex.offset.y = clothOffset(0);
+
+const cloth = new THREE.Mesh(
+  buildClothGeometry(),
+  new THREE.MeshStandardMaterial({ map: clothTex, roughness: 0.85, side: THREE.DoubleSide })
+);
+cloth.receiveShadow = true;
+loom.add(cloth);
+
+/* ==================== 经线 / 综片 / 通丝 ==================== */
+let liftCur    = new Float32Array(NUM_WARPS);
+let liftPrev   = new Float32Array(NUM_WARPS);
+let liftTarget = new Uint8Array(NUM_WARPS);
+
+const warpMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.006, 1, 0.006),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }),
+  NUM_WARPS * 2
+);
+warpMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+{
+  const cTmp = new THREE.Color();
+  for(let i = 0; i < NUM_WARPS; i++){
+    cTmp.setHSL(0.11, 0.25, 0.78 + Math.random() * 0.08);
+    warpMesh.setColorAt(i * 2, cTmp);
+    warpMesh.setColorAt(i * 2 + 1, cTmp);
+  }
+}
+loom.add(warpMesh);
+
+const heddleMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.012, 0.62, 0.012), steelMat, NUM_WARPS
+);
+heddleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+loom.add(heddleMesh);
+
+const cordMesh = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(0.008, 1, 0.008),
+  new THREE.MeshStandardMaterial({ color: 0xcbb58f, roughness: 0.9 }),
+  NUM_WARPS
+);
+cordMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+loom.add(cordMesh);
+
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(),
+      _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3(),
+      _mid = new THREE.Vector3(), _s = new THREE.Vector3();
+function setSeg(mesh, idx, ax, ay, az, bx, by, bz){
+  _d.set(bx - ax, by - ay, bz - az);
+  const len = _d.length(); _d.normalize();
+  _q.setFromUnitVectors(_up, _d);
+  _mid.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
+  _s.set(1, len, 1);
+  _m.compose(_mid, _q, _s);
+  mesh.setMatrixAt(idx, _m);
+}
+const _qi = new THREE.Quaternion(), _one = new THREE.Vector3(1, 1, 1);
+function updateWarps(){
+  for(let i = 0; i < NUM_WARPS; i++){
+    const x = WARP_X0 + i * WARP_DX;
+    const eyeY = EYE_Y + liftCur[i] * LIFT_H;
+    setSeg(warpMesh, i * 2,     x, 1.31, -2.76, x, eyeY, HEDDLE_Z);
+    setSeg(warpMesh, i * 2 + 1, x, eyeY, HEDDLE_Z, x * 0.985, FELL_Y, FELL_Z);
+    _m.compose(_mid.set(x, eyeY, HEDDLE_Z), _qi, _one);
+    heddleMesh.setMatrixAt(i, _m);
+    const topY = eyeY + 0.31, lenC = 2.09 - topY;
+    _m.compose(_mid.set(x, topY + lenC / 2, HEDDLE_Z), _qi, _s.set(1, lenC, 1));
+    cordMesh.setMatrixAt(i, _m);
+  }
+  warpMesh.instanceMatrix.needsUpdate = true;
+  heddleMesh.instanceMatrix.needsUpdate = true;
+  cordMesh.instanceMatrix.needsUpdate = true;
+}
+
+/* ==================== 筘（打纬） ==================== */
+const reedGroup = new THREE.Group();
+reedGroup.position.set(0, 0.16, 0.78);
+loom.add(reedGroup);
+{
+  const slats = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.006, 0.98, 0.018), steelMat, 96
+  );
+  for(let i = 0; i < 96; i++){
+    _m.compose(_mid.set(-1.92 + i * (3.84 / 95), 0.62, 0), _qi, _one);
+    slats.setMatrixAt(i, _m);
+  }
+  reedGroup.add(slats);
+}
+addBox(4.0, 0.07, 0.05, woodDark, 0, 1.14, 0, reedGroup);
+addBox(4.0, 0.09, 0.06, woodDark, 0, 0.12, 0, reedGroup);
+addBox(0.07, 1.1, 0.06, woodDark, -1.98, 0.62, 0, reedGroup);
+addBox(0.07, 1.1, 0.06, woodDark, 1.98, 0.62, 0, reedGroup);
+addBox(0.1, 1.3, 0.09, woodMat, -2.12, 0.65, 0, reedGroup);
+addBox(0.1, 1.3, 0.09, woodMat, 2.12, 0.65, 0, reedGroup);
+addBox(0.2, 0.18, 0.2, woodDark, -2.05, 0.16, 0.78);
+addBox(0.2, 0.18, 0.2, woodDark, 2.05, 0.16, 0.78);
+
+/* ==================== 梭子与纬线 ==================== */
+const shuttle = new THREE.Group();
+{
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.3, 6, 12), woodDeep);
+  body.geometry.dispose();
+  const bGeo = new THREE.CapsuleGeometry(0.035, 0.3, 6, 12);
+  bGeo.rotateZ(Math.PI / 2);
+  body.geometry = bGeo;
+  body.castShadow = true;
+  shuttle.add(body);
+  const tipGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.36, 8);
+  tipGeo.rotateZ(Math.PI / 2);
+  shuttle.add(new THREE.Mesh(tipGeo, goldMat));
+}
+shuttle.position.set(-2.45, 1.06, 0.42);
+loom.add(shuttle);
+
+const weftTail = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 0.005, 0.005),
+  new THREE.MeshStandardMaterial({ color: 0xd9c9a8, roughness: 0.7 })
+);
+weftTail.visible = false;
+loom.add(weftTail);
+
+/* ==================== 纹板（打孔卡片） ==================== */
+const cardTex = new THREE.CanvasTexture(cardCanvas);
+cardTex.colorSpace = THREE.SRGBColorSpace;
+cardTex.wrapS = THREE.ClampToEdgeWrapping;
+cardTex.wrapT = THREE.RepeatWrapping;
+const CARD_ROWS_VIS = 26;
+cardTex.repeat.set(1, CARD_ROWS_VIS / PMAX);
+const cardOffset = p => 1 - CARD_ROWS_VIS / PMAX - p / PMAX;
+cardTex.offset.y = cardOffset(0);
+
+const cardStrip = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.9, 1.15),
+  new THREE.MeshStandardMaterial({ map: cardTex, roughness: 0.9, side: THREE.DoubleSide })
+);
+cardStrip.position.set(1.5, 3.02, -0.28);
+cardStrip.rotation.x = -0.18;
+loom.add(cardStrip);
+
+const cardPrismGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.95, 6);
+cardPrismGeo.rotateZ(Math.PI / 2);
+const cardPrism = new THREE.Mesh(cardPrismGeo, woodDeep);
+cardPrism.position.set(1.5, 3.62, -0.38);
+loom.add(cardPrism);
+
+/* ==================== 音效（Web Audio 合成） ==================== */
+const Sound = {
+  ctx: null, master: null, noise: null, enabled: true,
+  ensure(){
+    if(!this.ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.55;
+      this.master.connect(this.ctx.destination);
+      const len = this.ctx.sampleRate;
+      const buf = this.ctx.createBuffer(1, len, len);
+      const d = buf.getChannelData(0);
+      for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noise = buf;
+    }
+    if(this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  ok(){ return this.enabled && this.ctx && this.noise; },
+  burst(t, freq, q, vol, dur, type = 'bandpass'){
+    const src = this.ctx.createBufferSource(); src.buffer = this.noise;
+    const f = this.ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t); src.stop(t + dur + 0.02);
+  },
+  clack(){ // 开口：木质撞击两声
+    if(!this.ok()) return;
+    const t = this.ctx.currentTime;
+    this.burst(t, 850, 7, 0.35, 0.1);
+    this.burst(t + 0.075, 1500, 7, 0.22, 0.09);
+  },
+  whoosh(dur, dir){ // 引纬：梭子飞行 + 接住
+    if(!this.ok()) return;
+    const t = this.ctx.currentTime;
+    const src = this.ctx.createBufferSource(); src.buffer = this.noise; src.loop = true;
+    const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.6;
+    f.frequency.setValueAtTime(dir > 0 ? 450 : 1500, t);
+    f.frequency.exponentialRampToValueAtTime(dir > 0 ? 1500 : 450, t + dur);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t + dur * 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t); src.stop(t + dur + 0.02);
+    this.burst(t + dur, 1100, 6, 0.25, 0.07);
+  },
+  thud(){ // 打纬：筘击
+    if(!this.ok()) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(130, t);
+    o.frequency.exponentialRampToValueAtTime(52, t + 0.14);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.7, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 0.24);
+    this.burst(t, 420, 0.8, 0.4, 0.1, 'lowpass');
+  },
+  chime(){ // 完成：五声音阶
+    if(!this.ok()) return;
+    const t = this.ctx.currentTime;
+    [523.25, 587.33, 659.25, 783.99, 1046.5].forEach((fq, i) => {
+      const o = this.ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = fq;
+      const g = this.ctx.createGain(); const s = t + i * 0.13;
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(0.22, s + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + 0.6);
+      o.connect(g); g.connect(this.master);
+      o.start(s); o.stop(s + 0.65);
+    });
+  }
+};
+
+/* ==================== 织造状态机 ==================== */
+const TIMES = { shed: 0.30, shuttle: 0.34, beat: 0.24, settle: 0.12 };
+let state = 'idle';   // idle | shed | shuttle | beat | settle | done
+let paused = false;
+let phaseT = 0, pick = 0, dir = 1, impacted = false;
+let reedAngle = -0.06;
+const REED_REST = -0.06, REED_HIT = 0.30;
+let shuttleFrom = -2.45, shuttleTo = 2.45;
+let shake = 0;
+let speed = 2;
+
+const btnStart = document.getElementById('btn-start');
+const pickLabel = document.getElementById('pick-label');
+const progressFill = document.getElementById('progress-fill');
+const doneOverlay = document.getElementById('done-overlay');
+const chips = {
+  shed: document.getElementById('ph-shed'),
+  shuttle: document.getElementById('ph-shuttle'),
+  beat: document.getElementById('ph-beat')
+};
+function setPhase(name){
+  for(const k in chips) chips[k].classList.toggle('active', k === name);
+}
+
+function beginPick(){
+  dir = (pick % 2 === 0) ? 1 : -1;
+  shuttleFrom = dir > 0 ? -2.45 : 2.45;
+  shuttleTo = -shuttleFrom;
+  liftTarget = liftPatterns[pick];
+  state = 'shed'; phaseT = 0;
+  Sound.clack();
+  setPhase('shed');
+}
+
+function commitPick(){
+  const woven = pick + 1;
+  clothTex.offset.y = clothOffset(woven);
+  cardTex.offset.y = cardOffset(woven);
+  cardPrism.rotation.x += 0.3;
+  clothRoll.rotation.x += PICK_WORLD / 0.30;
+  warpBeam.rotation.x += PICK_WORLD / 0.32;
+  progressFill.style.width = (woven / PMAX * 100).toFixed(1) + '%';
+  pickLabel.textContent = `第 ${woven} / ${PMAX} 纬`;
+}
+
+function finishWeaving(){
+  state = 'done';
+  setPhase(null);
+  pickLabel.textContent = `织造完成 · 共 ${PMAX} 纬`;
+  document.querySelector('.done-pattern').textContent =
+    currentText || (currentPreset === 'wuxing' ? '五星出东方利中国'
+      : currentPreset === 'yunqi' ? '云气瑞兽纹' : '几何纹');
+  doneOverlay.classList.add('show');
+  Sound.chime();
+  btnStart.textContent = '再织一次';
+}
+
+function resetWeaving(){
+  state = 'idle'; paused = false; phaseT = 0; pick = 0;
+  liftCur = new Float32Array(NUM_WARPS);
+  liftPrev = new Float32Array(NUM_WARPS);
+  liftTarget = new Uint8Array(NUM_WARPS);
+  reedAngle = REED_REST;
+  shuttle.position.set(-2.45, 1.06, 0.42);
+  shuttle.rotation.z = 0;
+  clothTex.offset.y = clothOffset(0);
+  cardTex.offset.y = cardOffset(0);
+  clothRoll.rotation.x = 0;
+  warpBeam.rotation.x = 0;
+  progressFill.style.width = '0%';
+  pickLabel.textContent = `准备就绪 · 共 ${PMAX} 纬`;
+  setPhase(null);
+  doneOverlay.classList.remove('show');
+  btnStart.textContent = '开始织造';
+}
+
+function startWeaving(){
+  Sound.ensure();
+  if(state === 'done') resetWeaving();
+  if(state === 'idle'){
+    paused = false;
+    beginPick();
+    btnStart.textContent = '暂停';
+  } else if(paused){
+    paused = false;
+    btnStart.textContent = '暂停';
+  } else {
+    paused = true;
+    btnStart.textContent = '继续';
+  }
+}
+
+function updateWeft(){
+  const edgeX = dir > 0 ? -CLOTH_WIDTH / 2 : CLOTH_WIDTH / 2;
+  const tipX = shuttle.position.x - dir * 0.15;
+  const len = Math.max(Math.abs(tipX - edgeX), 0.001);
+  weftTail.scale.x = len;
+  weftTail.position.set((tipX + edgeX) / 2, 1.045, 0.42);
+}
+
+function tick(dt){
+  if(!paused && state !== 'idle' && state !== 'done'){
+    phaseT += dt * speed;
+    if(state === 'shed'){
+      const k = Math.min(phaseT / TIMES.shed, 1), e = k * k * (3 - 2 * k);
+      for(let i = 0; i < NUM_WARPS; i++)
+        liftCur[i] = liftPrev[i] + (liftTarget[i] - liftPrev[i]) * e;
+      if(k >= 1){
+        liftPrev.set(liftTarget);
+        state = 'shuttle'; phaseT = 0;
+        Sound.whoosh(TIMES.shuttle / speed * 0.95, dir);
+        setPhase('shuttle');
+      }
+    } else if(state === 'shuttle'){
+      const k = Math.min(phaseT / TIMES.shuttle, 1);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      shuttle.position.x = shuttleFrom + (shuttleTo - shuttleFrom) * e;
+      shuttle.position.y = 1.06 + Math.sin(k * Math.PI) * 0.012;
+      shuttle.rotation.z = dir * 0.08 * Math.sin(k * Math.PI);
+      updateWeft();
+      if(k >= 1){ state = 'beat'; phaseT = 0; impacted = false; setPhase('beat'); }
+    } else if(state === 'beat'){
+      const k = Math.min(phaseT / TIMES.beat, 1);
+      if(k < 0.38){
+        const e = 1 - Math.pow(1 - k / 0.38, 3);
+        reedAngle = REED_REST + (REED_HIT - REED_REST) * e;
+      } else {
+        const e = (k - 0.38) / 0.62;
+        reedAngle = REED_HIT + (REED_REST - REED_HIT) * (e * e * (3 - 2 * e));
+      }
+      if(!impacted && k >= 0.38){
+        impacted = true;
+        commitPick();
+        Sound.thud();
+        shake = 1;
+      }
+      if(k >= 1){ state = 'settle'; phaseT = 0; }
+    } else if(state === 'settle'){
+      if(phaseT >= TIMES.settle){
+        pick++;
+        if(pick >= PMAX) finishWeaving();
+        else beginPick();
+      }
+    }
+  }
+  reedGroup.rotation.x = reedAngle;
+  weftTail.visible = (state === 'shuttle');
+  updateWarps();
+  if(shake > 0){
+    shake = Math.max(0, shake - dt * 4);
+    loom.position.x = (Math.random() - 0.5) * 0.02 * shake;
+    loom.position.z = (Math.random() - 0.5) * 0.014 * shake;
+  }
+}
+
+/* ==================== UI 事件 ==================== */
+btnStart.addEventListener('click', startWeaving);
+document.getElementById('btn-reset').addEventListener('click', () => {
+  Sound.ensure();
+  resetWeaving();
+});
+document.getElementById('btn-again').addEventListener('click', () => {
+  resetWeaving();
+  startWeaving();
+});
+const speedInput = document.getElementById('speed');
+const speedVal = document.getElementById('speed-val');
+speedInput.addEventListener('input', () => {
+  speed = parseFloat(speedInput.value);
+  speedVal.textContent = speed + '×';
+});
+const btnSound = document.getElementById('btn-sound');
+btnSound.addEventListener('click', () => {
+  Sound.enabled = !Sound.enabled;
+  btnSound.textContent = Sound.enabled ? '音效：开' : '音效：关';
+  if(Sound.enabled) Sound.ensure();
+});
+const btnRotate = document.getElementById('btn-rotate');
+btnRotate.addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  btnRotate.textContent = controls.autoRotate ? '自动旋转：开' : '自动旋转：关';
+});
+/* 纹样设置 */
+const presetSel = document.getElementById('preset');
+const textInput = document.getElementById('custom-text');
+presetSel.value = currentPreset;
+textInput.value = currentText;
+document.getElementById('btn-apply').addEventListener('click', () => {
+  applyPattern(presetSel.value, textInput.value.trim());
+});
+textInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter') applyPattern(presetSel.value, textInput.value.trim());
+  e.stopPropagation();
+});
+document.getElementById('btn-export').addEventListener('click', exportPatternPNG);
+window.addEventListener('keydown', e => {
+  if(e.code === 'Space' && e.target === document.body){
+    e.preventDefault();
+    startWeaving();
+  }
+});
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ==================== 开场镜头 ==================== */
+let introK = 0, introDone = false;
+const camFrom = camera.position.clone();
+const camTo = new THREE.Vector3(4.9, 2.9, 5.1);
+controls.addEventListener('start', () => { introDone = true; });
+
+/* ==================== 主循环 ==================== */
+let last = performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  if(!introDone){
+    introK = Math.min(introK + dt / 2.4, 1);
+    const e = 1 - Math.pow(1 - introK, 3);
+    camera.position.lerpVectors(camFrom, camTo, e);
+    if(introK >= 1) introDone = true;
+  }
+  tick(dt);
+  controls.update();
+  renderer.render(scene, camera);
+}
+updateWarps();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
